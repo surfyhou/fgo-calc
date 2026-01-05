@@ -145,6 +145,10 @@
                     <input type="number" id="ce-limit" value="5" max="5" min="1">
                 </label>
                 <label>
+                    助战礼装数量
+                    <input type="number" id="support-limit" value="1" max="2" min="0">
+                </label>
+                <label>
                     基础羁绊值
                     <input type="number" id="base-bond" value="1000">
                 </label>
@@ -555,6 +559,7 @@
             params.append('costlimit', document.getElementById('cost-limit').value);
             params.append('svtlimit', document.getElementById('svt-limit').value);
             params.append('celimit', document.getElementById('ce-limit').value);
+            params.append('supportlimit', document.getElementById('support-limit').value);
             params.append('basebond', document.getElementById('base-bond').value);
 
             SELECTIONS.allowTraits.forEach(id => params.append('allowtraits', id));
@@ -667,6 +672,28 @@
                     } else {
                         ceGrid.appendChild(createPlaceholder());
                     }
+                }
+
+                if (team.SupportCraftEssences && team.SupportCraftEssences.length > 0) {
+                    const supportHeader = document.createElement('div');
+                    supportHeader.innerHTML = '<strong>助战礼装:</strong>';
+                    supportHeader.style.marginTop = '0.5rem';
+                    teamDiv.appendChild(supportHeader);
+
+                    const supportGrid = document.createElement('div');
+                    supportGrid.className = 'team-grid';
+                    teamDiv.appendChild(supportGrid);
+
+                    team.SupportCraftEssences.forEach(ce => {
+                         const div = createAvatar(ce.id, ce.name, ce.img);
+
+                        const contributionSpan = document.createElement('div');
+                        contributionSpan.className = 'contribution';
+                        contributionSpan.textContent = `+${ce.contribution}`;
+                        div.appendChild(contributionSpan);
+                        
+                        supportGrid.appendChild(div);
+                    });
                 }
 
                 list.appendChild(teamDiv);

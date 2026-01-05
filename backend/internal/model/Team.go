@@ -8,11 +8,12 @@ type SvtBonus struct {
 }
 
 type Team struct {
-	Servants      []Servant
-	DiffChoice    []string
-	CraftEssences []CraftEssence
-	TotalCost     int
-	TotalBond     int
+	Servants            []Servant
+	DiffChoice          []string
+	CraftEssences       []CraftEssence
+	SupportCraftEssences []CraftEssence
+	TotalCost           int
+	TotalBond           int
 }
 
 type TeamHeap []Team
@@ -42,11 +43,12 @@ type TeamResultCE struct {
 }
 
 type TeamResponse struct {
-	Servants      []Servant      `json:"Servants"`
-	DiffChoice    []string       `json:"DiffChoice"`
-	CraftEssences []TeamResultCE `json:"CraftEssences"`
-	TotalCost     int            `json:"TotalCost"`
-	TotalBond     int            `json:"TotalBond"`
+	Servants            []Servant      `json:"Servants"`
+	DiffChoice          []string       `json:"DiffChoice"`
+	CraftEssences       []TeamResultCE `json:"CraftEssences"`
+	SupportCraftEssences []TeamResultCE `json:"SupportCraftEssences"`
+	TotalCost           int            `json:"TotalCost"`
+	TotalBond           int            `json:"TotalBond"`
 }
 
 type PathNode struct {

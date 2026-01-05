@@ -69,10 +69,18 @@ func (h *Handler) Calculate(c *gin.Context) {
 	}
 
 	baseBond, _ := strconv.Atoi(c.PostForm("basebond"))
+	supportLimit, _ := strconv.Atoi(c.PostForm("supportlimit"))
+	if supportLimit < 0 {
+		supportLimit = 0
+	}
+	if supportLimit > 2 {
+		supportLimit = 2
+	}
 	results, duration := h.service.Optimize(
 		costLimit,
 		svtLimit,
 		ceLimit,
+		supportLimit,
 		mapStr2Int(c.PostFormArray("allowtraits")),
 		mapStr2Int(c.PostFormArray("includesvt")),
 		c.PostFormArray("includesvtdiff"),
