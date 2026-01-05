@@ -1,24 +1,26 @@
 package config
 
-import "os"
+import (
+	"encoding/json"
+	"os"
+)
 
 type Config struct {
-	DataDir string
-	Port    string
+	Port        string `json:"port"`
+	DataDir     string `json:"data_dir"`
+	MaxCost     int    `json:"max_cost"`
+	MaxSvtLimit int    `json:"max_svt_limit"`
+	MaxCeLimit  int    `json:"max_ce_limit"`
 }
 
-func LoadConfig() *Config {
-	dataDir := os.Getenv("DATA_DIR")
-	if dataDir == "" {
-		dataDir = "../data" // 默认假设在 backend 目录下运行，数据在上一层
+func LoadConfig(path string) (*Config, error) {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = ":30006"
+	var config Config
+	if err := json.Unmarshal(file, &config); err != nil {
+		return nil, err
 	}
-	return &Config{
-		DataDir: dataDir,
-		Port:    port,
-	}
+	return &config, nil
 }
-

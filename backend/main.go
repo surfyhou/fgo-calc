@@ -5,6 +5,7 @@ import (
 	"fgo-calc-backend/internal/handler"
 	"fgo-calc-backend/internal/repository"
 	"fgo-calc-backend/internal/service"
+	"flag"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,13 @@ import (
 
 func main() {
 	// 1. 加载配置
-	cfg := config.LoadConfig()
+	configPath := flag.String("config", "config.dev.json", "path to config file")
+	flag.Parse()
+
+	cfg, err := config.LoadConfig(*configPath)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
 
 	// 2. 初始化 Repository
 	repo, err := repository.NewRepository(cfg.DataDir)
@@ -24,7 +31,7 @@ func main() {
 	svc := service.NewCalculatorService(repo)
 
 	// 4. 初始化 Handler
-	h := handler.NewHandler(repo, svc)
+	h := handler.NewHandler(repo, svc, cfg)
 
 	// 5. 设置 Gin 路由
 	r := gin.Default()

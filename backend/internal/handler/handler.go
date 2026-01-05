@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"fgo-calc-backend/internal/config"
 	"fgo-calc-backend/internal/repository"
 	"fgo-calc-backend/internal/service"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -11,10 +13,11 @@ import (
 type Handler struct {
 	repo    *repository.Repository
 	service *service.CalculatorService
+	cfg     *config.Config
 }
 
-func NewHandler(repo *repository.Repository, service *service.CalculatorService) *Handler {
-	return &Handler{repo: repo, service: service}
+func NewHandler(repo *repository.Repository, service *service.CalculatorService, cfg *config.Config) *Handler {
+	return &Handler{repo: repo, service: service, cfg: cfg}
 }
 
 func (h *Handler) Register(r *gin.Engine) {
@@ -55,16 +58,16 @@ func (h *Handler) Calculate(c *gin.Context) {
 	svtLimit, _ := strconv.Atoi(c.PostForm("svtlimit"))
 	ceLimit, _ := strconv.Atoi(c.PostForm("celimit"))
 
-	if ceLimit > 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "礼装数量不能超过6个"})
+	if ceLimit > h.cfg.MaxCeLimit {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("礼装数量不能超过%d个", h.cfg.MaxCeLimit)})
 		return
 	}
-	if svtLimit > 6 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "从者数量不能超过6个"})
+	if svtLimit > h.cfg.MaxSvtLimit {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("从者数量不能超过%d个", h.cfg.MaxSvtLimit)})
 		return
 	}
-	if costLimit > 130 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "总cost不能超过130"})
+	if costLimit > h.cfg.MaxCost {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("总cost不能超过%d", h.cfg.MaxCost)})
 		return
 	}
 
