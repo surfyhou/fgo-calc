@@ -1,0 +1,100 @@
+package handler
+
+import (
+	"fgo-calc-backend/internal/repository"
+	"fgo-calc-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
+)
+
+type Handler struct {
+	repo    *repository.Repository
+	service *service.CalculatorService
+}
+
+func NewHandler(repo *repository.Repository, service *service.CalculatorService) *Handler {
+	return &Handler{repo: repo, service: service}
+}
+
+func (h *Handler) Register(r *gin.Engine) {
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
+
+	r.Static("/static", "./static")
+
+	api := r.Group("/api")
+	{
+		api.GET("/data", h.GetData)
+		api.POST("/filtertraits", h.FilterTraits)
+		api.POST("/calculate", h.Calculate)
+	}
+
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"msg": "给我玩FGO"})
+	})
+}
+
+func (h *Handler) GetData(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"servants":      h.repo.GetServants(),
+		"craftEssences": h.repo.GetCraftEssences(),
+		"traits":        h.repo.GetTraits(),
+	})
+}
+
+func (h *Handler) FilterTraits(c *gin.Context) {
+	traits := mapStr2Int(c.PostFormArray("traits"))
+	results := h.service.FilterServants(traits, []int{}, []int{})
+	c.JSON(http.StatusOK, results)
+}
+
+func (h *Handler) Calculate(c *gin.Context) {
+	costLimit, _ := strconv.Atoi(c.PostForm("costlimit"))
+	svtLimit, _ := strconv.Atoi(c.PostForm("svtlimit"))
+	ceLimit, _ := strconv.Atoi(c.PostForm("celimit"))
+
+	if ceLimit > 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "礼装数量不能超过6个"})
+		return
+	}
+	if svtLimit > 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "从者数量不能超过6个"})
+		return
+	}
+	if costLimit > 130 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "总cost不能超过130"})
+		return
+	}
+
+	baseBond, _ := strconv.Atoi(c.PostForm("basebond"))
+	results, duration := h.service.Optimize(
+		costLimit,
+		svtLimit,
+		ceLimit,
+		mapStr2Int(c.PostFormArray("allowtraits")),
+		mapStr2Int(c.PostFormArray("includesvt")),
+		c.PostFormArray("includesvtdiff"),
+		mapStr2Int(c.PostFormArray("excludesvt")),
+		mapStr2Int(c.PostFormArray("includece")),
+		mapStr2Int(c.PostFormArray("excludece")),
+		baseBond,
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"teams":    results,
+		"duration": duration.Milliseconds(),
+	})
+}
+
+func mapStr2Int(data []string) []int {
+	result := []int{}
+	for _, d := range data {
+		if v, err := strconv.Atoi(d); err == nil {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
