@@ -491,14 +491,86 @@
         };
         let currentModal = { type: '', list: '' };
 
+        const STORAGE_KEY = 'fgo-calc-state';
+
+        function saveState() {
+            const state = {
+                config: {
+                    costLimit: document.getElementById('cost-limit').value,
+                    svtLimit: document.getElementById('svt-limit').value,
+                    ceLimit: document.getElementById('ce-limit').value,
+                    supportLimit: document.getElementById('support-limit').value,
+                    baseBond: document.getElementById('base-bond').value,
+                    server: document.getElementById('server-select').value,
+                    enableEventBonus: document.getElementById('enable-event-bonus').checked,
+                },
+                selections: {
+                    includeSvt: Array.from(SELECTIONS.includeSvt.entries()),
+                    excludeSvt: Array.from(SELECTIONS.excludeSvt),
+                    includeCe: Array.from(SELECTIONS.includeCe),
+                    excludeCe: Array.from(SELECTIONS.excludeCe),
+                    allowTraits: Array.from(SELECTIONS.allowTraits),
+                }
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+            try {
+                const state = JSON.parse(saved);
+                if (state.config) {
+                    if (state.config.costLimit !== undefined) document.getElementById('cost-limit').value = state.config.costLimit;
+                    if (state.config.svtLimit !== undefined) document.getElementById('svt-limit').value = state.config.svtLimit;
+                    if (state.config.ceLimit !== undefined) document.getElementById('ce-limit').value = state.config.ceLimit;
+                    if (state.config.supportLimit !== undefined) document.getElementById('support-limit').value = state.config.supportLimit;
+                    if (state.config.baseBond !== undefined) document.getElementById('base-bond').value = state.config.baseBond;
+                    if (state.config.server !== undefined) document.getElementById('server-select').value = state.config.server;
+                    if (state.config.enableEventBonus !== undefined) document.getElementById('enable-event-bonus').checked = state.config.enableEventBonus;
+                }
+                if (state.selections) {
+                    if (state.selections.includeSvt) SELECTIONS.includeSvt = new Map(state.selections.includeSvt);
+                    if (state.selections.excludeSvt) SELECTIONS.excludeSvt = new Set(state.selections.excludeSvt);
+                    if (state.selections.includeCe) SELECTIONS.includeCe = new Set(state.selections.includeCe);
+                    if (state.selections.excludeCe) SELECTIONS.excludeCe = new Set(state.selections.excludeCe);
+                    if (state.selections.allowTraits) SELECTIONS.allowTraits = new Set(state.selections.allowTraits);
+                    
+                    renderSelectedTraits();
+                    renderSelectionList('svt', 'include');
+                    renderSelectionList('svt', 'exclude');
+                    renderSelectionList('ce', 'include');
+                    renderSelectionList('ce', 'exclude');
+                }
+            } catch (e) {
+                console.error('Failed to load state:', e);
+            }
+        }
+
         // --- 数据加载与初始化 ---
         window.onload = async () => {
             lucide.createIcons();
+            
+            // 为所有基础配置输入添加自动保存
+            ['cost-limit', 'svt-limit', 'ce-limit', 'support-limit', 'base-bond', 'server-select', 'enable-event-bonus'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', saveState);
+                    if (el.type === 'number' || el.type === 'text') {
+                        el.addEventListener('input', saveState);
+                    }
+                }
+            });
+
             try {
                 const response = await fetch('/api/data');
                 ALL_DATA = await response.json();
                 ALL_DATA.servants.sort((a, b) => a.id - b.id);
                 ALL_DATA.craftEssences.sort((a, b) => a.id - b.id);
+               
+               // 加载持久化状态
+               loadState();
+               
                renderSelectedTraits();
                document.getElementById('trait-modal-search').addEventListener('input', (e) => {
                    populateTraitModalGrid(e.target.value);
@@ -522,6 +594,7 @@
                 tag.onclick = () => {
                     SELECTIONS.allowTraits.delete(Number(id));
                     renderSelectedTraits();
+                    saveState();
                     const traitCheckbox = document.querySelector(`#trait-modal-grid input[data-id='${id}']`);
                     if (traitCheckbox) traitCheckbox.checked = false;
                 };
@@ -561,6 +634,7 @@
                         SELECTIONS.allowTraits.delete(Number(id));
                     }
                     renderSelectedTraits();
+                    saveState();
                 };
                 label.appendChild(input);
                 label.append(` ${name}`);
@@ -578,6 +652,7 @@
             if (confirm('确定要清空所有已选特性吗？')) {
                 SELECTIONS.allowTraits.clear();
                 renderSelectedTraits();
+                saveState();
             }
         }
 
@@ -710,6 +785,7 @@
                         SELECTIONS.allowTraits.delete(Number(id));
                     }
                     renderSelectedTraits();
+                    saveState();
                 };
                 label.appendChild(input);
                 label.append(`${name}`);
@@ -739,12 +815,14 @@
                 SELECTIONS[key].add(id);
                 renderSelectionList(type, list);
             }
+            saveState();
             closeModal();
         }
 
         function addSvtWithDiff(id, diffKey) {
             SELECTIONS.includeSvt.set(id, diffKey);
             renderSelectionList('svt', 'include');
+            saveState();
             closeSvtDiffModal();
         }
 
@@ -756,6 +834,7 @@
                 SELECTIONS[key].delete(id);
             }
             renderSelectionList(type, list);
+            saveState();
         }
 
         function renderSelectionList(type, list) {
@@ -992,6 +1071,7 @@
                 SELECTIONS[key].add(id);
             }
             renderSelectionList(type, list);
+            saveState();
         }
 
         // --- 辅助函数 ---
