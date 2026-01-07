@@ -129,9 +129,9 @@
             margin-top: 0.5rem;
             min-height: 120px;
             padding: 1rem;
-            background: rgba(0,0,0,0.02);
+            background: var(--pico-card-sectionning-background-color);
             border-radius: var(--pico-border-radius);
-            border: 1px dashed var(--pico-muted-border-color);
+            border: 1px solid var(--pico-border-color);
         }
         .team-result {
             border: 1px solid var(--pico-border-color);
@@ -288,10 +288,11 @@
         }
         .section-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
+            gap: 1rem;
             align-items: center;
             margin-bottom: 1rem;
-            border-bottom: 1px solid var(--pico-muted-border-color);
+            border-bottom: 2px solid var(--pico-muted-border-color);
             padding-bottom: 0.5rem;
         }
         .section-header h6 {
