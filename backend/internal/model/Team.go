@@ -8,7 +8,7 @@ type SvtBonus struct {
 }
 
 type Team struct {
-	Servants            []Servant
+	Servants            []*Servant
 	DiffChoice          []string
 	CraftEssences       []CraftEssence
 	SupportCraftEssences []CraftEssence
@@ -43,7 +43,7 @@ type TeamResultCE struct {
 }
 
 type TeamResponse struct {
-	Servants            []Servant      `json:"Servants"`
+	Servants            []*Servant     `json:"Servants"`
 	DiffChoice          []string       `json:"DiffChoice"`
 	CraftEssences       []TeamResultCE `json:"CraftEssences"`
 	SupportCraftEssences []TeamResultCE `json:"SupportCraftEssences"`

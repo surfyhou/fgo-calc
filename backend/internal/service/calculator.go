@@ -273,7 +273,7 @@ func (s *CalculatorService) calculateBestSupport(team *model.Team, baseBond int,
 			}
 			contribution := int(float64(baseBond)*svtPercent/100.0) + svtDirect
 			if enableEventBonus {
-				contribution = int(float64(contribution) * s.getEventMultiplier(&svt, serverType))
+				contribution = int(float64(contribution) * s.getEventMultiplier(svt, serverType))
 			}
 			totalBonusContribution += contribution
 		}
@@ -368,12 +368,24 @@ func (s *CalculatorService) Optimize(costLimit int, svtLimit int, ceLimit int, s
 	}
 
 	numWorkers := runtime.GOMAXPROCS(0)
-	ceJobs := make(chan []model.CraftEssence, len(cePool))
-	resultsChan := make(chan []model.Team, len(cePool))
+	ceJobs := make(chan []model.CraftEssence, numWorkers*2)
+	resultsChan := make(chan []model.Team, numWorkers*2)
 	var wg sync.WaitGroup
 
 	worker := func() {
 		defer wg.Done()
+		// Pre-allocate DP tables for reuse
+		maxSvt := svtLimit + 1
+		maxCost := costLimit + 1
+		dp := make([][]int, maxSvt)
+		for i := range dp {
+			dp[i] = make([]int, maxCost)
+		}
+		paths := make([][]*model.PathNode, maxSvt)
+		for i := range paths {
+			paths[i] = make([]*model.PathNode, maxCost)
+		}
+
 		for ceCombo := range ceJobs {
 			localTeams := []model.Team{}
 			ceCost := 0
@@ -466,7 +478,7 @@ func (s *CalculatorService) Optimize(costLimit int, svtLimit int, ceLimit int, s
 					TotalCost:     ceCost + mandatoryCost,
 				}
 				for _, sb := range mandatoryBonuses {
-					team.Servants = append(team.Servants, *sb.Svt)
+					team.Servants = append(team.Servants, sb.Svt)
 					team.DiffChoice = append(team.DiffChoice, sb.DiffKey)
 				}
 				localTeams = append(localTeams, team)
@@ -520,7 +532,7 @@ func (s *CalculatorService) Optimize(costLimit int, svtLimit int, ceLimit int, s
 					TotalCost:     ceCost + mandatoryCost,
 				}
 				for _, sb := range mandatoryBonuses {
-					team.Servants = append(team.Servants, *sb.Svt)
+					team.Servants = append(team.Servants, sb.Svt)
 					team.DiffChoice = append(team.DiffChoice, sb.DiffKey)
 				}
 				localTeams = append(localTeams, team)
@@ -529,19 +541,14 @@ func (s *CalculatorService) Optimize(costLimit int, svtLimit int, ceLimit int, s
 			}
 
 			const NEG = -1 << 60
-			dp := make([][]int, currentSvtLimit+1)
-			for i := range dp {
-				dp[i] = make([]int, currentCostLimit+1)
-				for j := range dp[i] {
+			// Reset DP tables
+			for i := 0; i <= currentSvtLimit; i++ {
+				for j := 0; j <= currentCostLimit; j++ {
 					dp[i][j] = NEG
+					paths[i][j] = nil
 				}
 			}
 			dp[0][0] = 0
-
-			paths := make([][]*model.PathNode, currentSvtLimit+1)
-			for i := range paths {
-				paths[i] = make([]*model.PathNode, currentCostLimit+1)
-			}
 
 			for itemIdx, item := range optionalBonuses {
 				cost := item.Cost
@@ -592,11 +599,11 @@ func (s *CalculatorService) Optimize(costLimit int, svtLimit int, ceLimit int, s
 						TotalBond:     mandatoryBond,
 					}
 					for _, sb := range mandatoryBonuses {
-						team.Servants = append(team.Servants, *sb.Svt)
+						team.Servants = append(team.Servants, sb.Svt)
 						team.DiffChoice = append(team.DiffChoice, sb.DiffKey)
 					}
 					for _, sb := range chosen {
-						team.Servants = append(team.Servants, *sb.Svt)
+						team.Servants = append(team.Servants, sb.Svt)
 						team.DiffChoice = append(team.DiffChoice, sb.DiffKey)
 						team.TotalBond += sb.Bonus
 					}
@@ -648,15 +655,21 @@ func (s *CalculatorService) Optimize(costLimit int, svtLimit int, ceLimit int, s
 			if team.TotalBond > globalMaxBond {
 				globalMaxBond = team.TotalBond
 			}
-			// Only keep teams that have a chance to beat current max + deltaMax logic?
-			// Actually, we can just store them all if memory allows, or filter against "GlobalMax - DeltaMax"
-			// But GlobalMax increases over time.
-			// Let's store all candidates that are within reasonable range.
-			// To be safe and since resultsChan is not sorted, we might need to buffer more.
-			// Let's use a two-pass approach or just a simple list if not too huge.
-			// Given FGO constraints, number of valid teams isn't infinite.
-			// But to be safe, let's just use a slice and filter later.
-			allCandidates = append(allCandidates, team)
+			if team.TotalBond >= globalMaxBond-deltaMax {
+				allCandidates = append(allCandidates, team)
+			}
+		}
+		// Periodically prune to save memory
+		if len(allCandidates) > 100000 {
+			threshold := globalMaxBond - deltaMax
+			n := 0
+			for i := range allCandidates {
+				if allCandidates[i].TotalBond >= threshold {
+					allCandidates[n] = allCandidates[i]
+					n++
+				}
+			}
+			allCandidates = allCandidates[:n]
 		}
 	}
 

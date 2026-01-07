@@ -22,15 +22,26 @@ func NewRepository(dataDir string) (*Repository, error) {
 		return nil, err
 	}
 	repo.precompute()
+	repo.clearInternalData()
 	return repo, nil
 }
 
+func (r *Repository) clearInternalData() {
+	for i := range r.servants {
+		for key, detail := range r.servants[i].Diff {
+			detail.TraitSet = nil
+			r.servants[i].Diff[key] = detail
+		}
+	}
+}
+
 func (r *Repository) loadData(dataDir string) error {
-	svtData, err := os.ReadFile(filepath.Join(dataDir, "servants.json"))
+	svtFile, err := os.Open(filepath.Join(dataDir, "servants.json"))
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(svtData, &r.servants); err != nil {
+	defer svtFile.Close()
+	if err := json.NewDecoder(svtFile).Decode(&r.servants); err != nil {
 		return err
 	}
 
@@ -45,19 +56,21 @@ func (r *Repository) loadData(dataDir string) error {
 		}
 	}
 
-	ceData, err := os.ReadFile(filepath.Join(dataDir, "ces.json"))
+	ceFile, err := os.Open(filepath.Join(dataDir, "ces.json"))
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(ceData, &r.craftEssences); err != nil {
+	defer ceFile.Close()
+	if err := json.NewDecoder(ceFile).Decode(&r.craftEssences); err != nil {
 		return err
 	}
 
-	traitMapData, err := os.ReadFile(filepath.Join(dataDir, "names", "traits.json"))
+	traitMapFile, err := os.Open(filepath.Join(dataDir, "names", "traits.json"))
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(traitMapData, &r.traits); err != nil {
+	defer traitMapFile.Close()
+	if err := json.NewDecoder(traitMapFile).Decode(&r.traits); err != nil {
 		return err
 	}
 
@@ -72,9 +85,9 @@ func (r *Repository) precompute() {
 func (r *Repository) precomputeCeEffects() {
 	r.ceEffects = make(map[int]map[int]map[string]model.CeEffect)
 	for _, ce := range r.craftEssences {
-		r.ceEffects[ce.Id] = make(map[int]map[string]model.CeEffect)
+		ceMap := make(map[int]map[string]model.CeEffect)
 		for _, svt := range r.servants {
-			r.ceEffects[ce.Id][svt.Id] = make(map[string]model.CeEffect)
+			svtDiffMap := make(map[string]model.CeEffect)
 			for diffKey, detail := range svt.Diff {
 				percent := 0.0
 				direct := 0
@@ -97,8 +110,16 @@ func (r *Repository) precomputeCeEffects() {
 						break
 					}
 				}
-				r.ceEffects[ce.Id][svt.Id][diffKey] = model.CeEffect{Percent: percent, Direct: direct}
+				if percent != 0 || direct != 0 {
+					svtDiffMap[diffKey] = model.CeEffect{Percent: percent, Direct: direct}
+				}
 			}
+			if len(svtDiffMap) > 0 {
+				ceMap[svt.Id] = svtDiffMap
+			}
+		}
+		if len(ceMap) > 0 {
+			r.ceEffects[ce.Id] = ceMap
 		}
 	}
 }
