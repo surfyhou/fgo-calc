@@ -57,6 +57,12 @@ func (h *Handler) Calculate(c *gin.Context) {
 	costLimit, _ := strconv.Atoi(c.PostForm("costlimit"))
 	svtLimit, _ := strconv.Atoi(c.PostForm("svtlimit"))
 	ceLimit, _ := strconv.Atoi(c.PostForm("celimit"))
+	allowTraits := mapStr2Int(c.PostFormArray("allowtraits"))
+
+	if ceLimit >= h.cfg.MaxCeLimit && len(allowTraits) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "戴冠战必须进行职阶筛选"})
+		return
+	}
 
 	if ceLimit > h.cfg.MaxCeLimit {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("礼装数量不能超过%d个", h.cfg.MaxCeLimit)})
@@ -76,8 +82,9 @@ func (h *Handler) Calculate(c *gin.Context) {
 	if supportLimit < 0 {
 		supportLimit = 0
 	}
-	if supportLimit > 2 {
-		supportLimit = 2
+	if supportLimit > h.cfg.MaxSupportLimit {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("助战礼装数量不能超过%d个", h.cfg.MaxSupportLimit)})
+		return
 	}
 
 	server := c.PostForm("server")
@@ -92,7 +99,7 @@ func (h *Handler) Calculate(c *gin.Context) {
 		svtLimit,
 		ceLimit,
 		supportLimit,
-		mapStr2Int(c.PostFormArray("allowtraits")),
+		allowTraits,
 		mapStr2Int(c.PostFormArray("includesvt")),
 		c.PostFormArray("includesvtdiff"),
 		mapStr2Int(c.PostFormArray("excludesvt")),

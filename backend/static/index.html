@@ -357,7 +357,7 @@
                 <ul>
                     <li>本项目已开源：<a href="https://github.com/pikaball/fgo-calc/">github</a></li>
                     <li>计算时不考虑前排加成。</li>
-                    <li><strong>冠位战：</strong>Cost+12，礼装数设为6，筛选对应职阶。</li>
+                    <li><strong>戴冠战：</strong>Cost+12，礼装数设为6，筛选对应职阶。</li>
                     <li><strong>特殊礼装：</strong>若带黑杯等非羁绊礼装，则减去对应Cost和礼装数量。</li>
                     <li><strong>15绊从者：</strong>减去该从者Cost，从者数量上限-1，并将其添加到排除列表。</li>
                 </ul>
@@ -409,7 +409,7 @@
             </details>
 
             <div class="section-header">
-                <h6><i data-lucide="filter" style="width: 16px; vertical-align: middle;"></i> 职阶筛选</h6>
+                <h6><i data-lucide="filter" style="width: 16px; vertical-align: middle;"></i> 职阶筛选（戴冠战）</h6>
             </div>
             <div id="main-class-filters" class="filter-group" style="margin-bottom: 1.5rem; justify-content: center; gap: 8px;">
                 <!-- 职阶图标将在这里动态生成 -->
@@ -1161,8 +1161,11 @@
                     method: 'POST',
                     body: params
                 });
-                if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+                
                 const results = await response.json();
+                if (!response.ok) {
+                    throw new Error(results.error || `Server error: ${response.statusText}`);
+                }
                 renderResults(results.teams, results.duration);
             } catch (error) {
                 console.error('Calculation failed:', error);

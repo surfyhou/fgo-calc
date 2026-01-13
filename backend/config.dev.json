@@ -3,6 +3,7 @@
     "data_dir": "../data",
     "max_cost": 999,
     "max_svt_limit": 6,
-    "max_ce_limit": 12
+    "max_ce_limit": 12,
+    "max_support_limit": 2
 }
 

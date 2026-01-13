@@ -6,11 +6,12 @@ import (
 )
 
 type Config struct {
-	Port        string `json:"port"`
-	DataDir     string `json:"data_dir"`
-	MaxCost     int    `json:"max_cost"`
-	MaxSvtLimit int    `json:"max_svt_limit"`
-	MaxCeLimit  int    `json:"max_ce_limit"`
+	Port            string `json:"port"`
+	DataDir         string `json:"data_dir"`
+	MaxCost         int    `json:"max_cost"`
+	MaxSvtLimit     int    `json:"max_svt_limit"`
+	MaxCeLimit      int    `json:"max_ce_limit"`
+	MaxSupportLimit int    `json:"max_support_limit"`
 }
 
 func LoadConfig(path string) (*Config, error) {
