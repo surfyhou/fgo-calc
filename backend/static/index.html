@@ -143,9 +143,18 @@
         }
         .team-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(calc(var(--avatar-size) + 20px), 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(calc(var(--avatar-size) + 60px), 1fr));
             gap: 0.75rem;
             margin-bottom: 1rem;
+        }
+        .result-item-wrapper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .result-item-wrapper .avatar-container {
+            width: auto;
+            flex-grow: 0;
         }
         .team-section-title {
             font-size: 0.75rem;
@@ -299,14 +308,12 @@
             margin-bottom: 0;
         }
         .result-actions {
-            position: absolute;
-            left: calc(50% + var(--avatar-size) / 2 + 2px);
-            top: 0.5rem;
             display: flex;
             flex-direction: column;
             gap: 4px;
             width: auto;
-            z-index: 10;
+            margin-left: 6px;
+            margin-top: 0.5rem;
         }
         .result-actions button {
             width: 24px;
@@ -403,7 +410,7 @@
 
             <details id="event-selection-details" style="display: none; margin-bottom: 1.5rem;">
                 <summary style="font-size: 0.8rem;">选择计算的活动</summary>
-                <div id="event-checkboxes-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.02); border-radius: var(--pico-border-radius); border: 1px solid var(--pico-muted-border-color);">
+                <div id="event-checkboxes-container" style="display: grid; grid-template-columns: 1fr; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.02); border-radius: var(--pico-border-radius); border: 1px solid var(--pico-muted-border-color);">
                     <!-- 动态生成复选框 -->
                 </div>
             </details>
@@ -774,7 +781,7 @@
                 label.style.display = 'flex';
                 label.style.alignItems = 'center';
                 label.style.gap = '8px';
-                label.style.marginBottom = '0';
+                // label.style.marginBottom = '0';
                 label.style.fontSize = '0.75rem';
 
                 const input = document.createElement('input');
@@ -1252,6 +1259,9 @@
                 
                 const svtLimit = parseInt(document.getElementById('svt-limit').value, 10);
                 for (let i = 0; i < svtLimit; i++) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'result-item-wrapper';
+
                     if (i < team.Servants.length) {
                         const svt = team.Servants[i];
                         const diffKey = team.DiffChoice[i];
@@ -1266,6 +1276,8 @@
 
                         renderEventBonuses(div, svt);
                         
+                        wrapper.appendChild(div);
+
                         const actions = document.createElement('div');
                         actions.className = 'result-actions';
                         actions.innerHTML = `
@@ -1276,11 +1288,11 @@
                                 <i data-lucide="minus"></i>
                             </button>
                         `;
-                        div.appendChild(actions);
-                        svtGrid.appendChild(div);
+                        wrapper.appendChild(actions);
                     } else {
-                        svtGrid.appendChild(createPlaceholder());
+                        wrapper.appendChild(createPlaceholder());
                     }
+                    svtGrid.appendChild(wrapper);
                 }
 
                 const ceTitle = document.createElement('div');
@@ -1294,6 +1306,9 @@
 
                 const ceLimit = parseInt(document.getElementById('ce-limit').value, 10);
                  for (let i = 0; i < ceLimit; i++) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'result-item-wrapper';
+
                     if (i < team.CraftEssences.length) {
                         const ce = team.CraftEssences[i];
                         const div = createAvatar(ce.id, ce.name, ce.img, null, null, true);
@@ -1302,6 +1317,8 @@
                         contributionSpan.className = 'contribution';
                         contributionSpan.textContent = `羁绊 +${ce.contribution}`;
                         div.appendChild(contributionSpan);
+
+                        wrapper.appendChild(div);
 
                         const actions = document.createElement('div');
                         actions.className = 'result-actions';
@@ -1313,11 +1330,11 @@
                                 <i data-lucide="minus"></i>
                             </button>
                         `;
-                        div.appendChild(actions);
-                        ceGrid.appendChild(div);
+                        wrapper.appendChild(actions);
                     } else {
-                        ceGrid.appendChild(createPlaceholder());
+                        wrapper.appendChild(createPlaceholder());
                     }
+                    ceGrid.appendChild(wrapper);
                 }
 
                 if (team.SupportCraftEssences && team.SupportCraftEssences.length > 0) {
@@ -1331,6 +1348,9 @@
                     teamDiv.appendChild(supportGrid);
 
                     team.SupportCraftEssences.forEach(ce => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'result-item-wrapper';
+
                          const div = createAvatar(ce.id, ce.name, ce.img, null, null, true);
 
                         const contributionSpan = document.createElement('div');
@@ -1338,7 +1358,8 @@
                         contributionSpan.textContent = `羁绊 +${ce.contribution}`;
                         div.appendChild(contributionSpan);
                         
-                        supportGrid.appendChild(div);
+                        wrapper.appendChild(div);
+                        supportGrid.appendChild(wrapper);
                     });
                 }
 
