@@ -122,10 +122,36 @@ $\Delta_{max} = (\text{助战数} \times 0.2 \times \text{人数} - 0.15 \times 
 
 ## Deployment
 
+### 本地构建运行
+
 ```shell
-python3 data.py
-python3 ce.py
+python3 data.py   # 仅在需要从 chaldea 重新拉取数据时执行
+python3 ce.py     # 同上；data/*.json 已随仓库提交，常规部署可跳过
 cd backend
 go build .
-./fgo-calc-backend
+./fgo-calc-backend -config config.prod.json
 ```
+
+### Docker 部署（推荐）
+
+前端为纯 html/js，由 Go 后端通过 `./static` 直接托管，API 与页面同属一个进程，因此单容器即可承载前后端。`data/*.json` 已随仓库提交并打入镜像，无需在容器内运行 Python 预处理脚本。
+
+```shell
+# 在仓库根目录
+docker compose up -d --build
+```
+
+默认监听 `config.prod.json` 中的端口 `30005`，访问 `http://<host>:30005` 即可。
+
+常用运维命令：
+
+```shell
+docker compose logs -f        # 查看日志
+docker compose restart        # 重启
+docker compose down           # 停止并移除容器
+docker compose up -d --build  # 修改代码/数据后重新构建并启动
+```
+
+更新数据后重新部署：本地执行 `python3 data.py && python3 ce.py` 重新生成 `data/`，再 `docker compose up -d --build` 即可。
+
+镜像采用多阶段构建（`golang:1.25-alpine` 编译 → `alpine` 运行），容器内目录结构为：工作目录 `/app/backend`（含二进制、`static/`、`config.prod.json`），数据位于 `/app/data`，以匹配后端 `./static` 与 `../data` 的相对路径约定。

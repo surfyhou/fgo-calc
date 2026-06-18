@@ -1,0 +1,8 @@
+services:
+  fgo-calc:
+    build: .
+    image: fgo-calc:latest
+    container_name: fgo-calc
+    ports:
+      - "30005:30005"
+    restart: unless-stopped
